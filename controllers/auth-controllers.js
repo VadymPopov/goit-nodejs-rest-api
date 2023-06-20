@@ -1,7 +1,7 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const gravatar = require("gravatar");
-const path = require("path");
+// const path = require("path");
 const fs = require("fs/promises");
 const { nanoid } = require("nanoid");
 
@@ -18,7 +18,7 @@ const { SECRET_KEY, PROJECT_URL } = process.env;
 const { ctrlWrapper } = require("../helpers");
 
 const register = async (req, res) => {
-  const { email, password } = req.body;
+  const { name, email, password } = req.body;
   const user = await User.findOne({ email });
   if (user) {
     throw HttpError(409, "Email is already in use");
@@ -38,13 +38,15 @@ const register = async (req, res) => {
   const verifyEmail = {
     to: email,
     subject: "Verify email",
-    html: `<a target="_blank" href="${PROJECT_URL}/users/verify/${verificationToken}">Click to verify email</a>`,
+    // html: `<a target="_blank" href="${PROJECT_URL}/users/verify/${verificationToken}">Click to verify email</a>`,
+    html: `<p>${name}, please verify your account. Your verification code is <span style="color:blue; font-weight: 700"> ${verificationToken} </span></p><p> With love your Phonebook App</p>`,
   };
 
   await sendEmail(verifyEmail);
 
   res.status(201).json({
     user: {
+      name: newUser.name,
       email: newUser.email,
       subscription: newUser.subscription,
     },
@@ -88,7 +90,8 @@ const resendVerifyEmail = async (req, res) => {
   const verifyEmail = {
     to: email,
     subject: "Verify email",
-    html: `<a target="_blank" href="${PROJECT_URL}/users/verify/${user.verificationToken}">Click to verify email</a>`,
+    // html: `<a target="_blank" href="${PROJECT_URL}/users/verify/${user.verificationToken}">Click to verify email</a>`,
+    html: `<p>${user.name}, please verify your account. Your verification code is ${user.verificationToken}. With love your Phonebook App</p>`,
   };
 
   await sendEmail(verifyEmail);
@@ -126,14 +129,18 @@ const login = async (req, res) => {
 
   res.json({
     token,
-    user: { email: user.email, subscription: user.subscription },
+    user: {
+      email: user.email,
+      subscription: user.subscription,
+      avatarURL: user.avatarURL,
+    },
   });
 };
 
 const getCurrent = async (req, res) => {
-  const { email, subscription } = req.user;
+  const { email, subscription, avatarURL } = req.user;
 
-  res.json({ email, subscription });
+  res.json({ email, subscription, avatarURL });
 };
 
 const logout = async (req, res) => {
@@ -145,7 +152,7 @@ const logout = async (req, res) => {
 
 const updateSubscription = async (req, res) => {
   const { _id: id } = req.user;
-  console.log(req.user);
+
   const result = await User.findByIdAndUpdate(id, req.body, {
     new: true,
   });
